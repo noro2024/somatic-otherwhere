@@ -4,6 +4,7 @@ export class VisualStateController {
   strength = 1;
   amount = 0;
   motionDrive = 0;
+  sensitivity = 1;
   private activity = 0;
   speed = .5;
   recovery = .5;
@@ -20,18 +21,20 @@ export class VisualStateController {
   step(dt:number){
     if(!this.enabled){this.amount=0;this.remaining=0;return;}
     // V2: fast attack, slower recovery; calm movement retains the hand silhouette.
-    const drive=Math.max(0,Math.min(1,this.motionDrive));
-    this.activity+=(drive-this.activity)*(1-Math.exp(-Math.max(0,dt)*(drive>this.activity?9:1.4)));
+    const drive=Math.max(0,Math.min(1,this.motionDrive*this.sensitivity));
+    // Slow movement must preserve the current tracked hand exactly.
+    if(drive<=.22){this.activity=0;this.amount=0;return;}
+    this.activity+=(drive-this.activity)*(1-Math.exp(-Math.max(0,dt)*(drive>this.activity?9:18)));
     this.remaining-=Math.max(0,dt);
     if(this.remaining<=0){
       this.recovering=!this.recovering;
       this.target=this.recovering?0:.75+this.random()*.25;
       this.remaining=this.recovering?2+this.random()*3:(7+this.random()*9)*(1.5-this.recovery);
     }
-    const threshold=Math.max(0,Math.min(1,(this.activity-.07)/.65));
+    const threshold=Math.max(0,Math.min(1,(this.activity-.22)/.55));
     const collapse=threshold*threshold*(3-2*threshold);
     const target=this.recovering?0:Math.min(1,this.strength*collapse*(.85+this.target*.15+this.memory*.15));
-    this.amount+=(target-this.amount)*(1-Math.exp(-Math.max(0,dt)*(this.recovering?3:(.4+this.speed*1.6))));
+    this.amount+=(target-this.amount)*(1-Math.exp(-Math.max(0,dt)*(target<this.amount?18:(.4+this.speed*1.6))));
     if(target===0&&this.amount<.001)this.amount=0;
   }
 }

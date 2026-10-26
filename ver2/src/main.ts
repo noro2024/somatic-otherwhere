@@ -21,6 +21,25 @@ document.querySelector('#app')!.innerHTML=`<main>
 </main>`;
 const cameraPanel=document.querySelector('.camera-panel')!;
 document.querySelector('.artwork-panel .viewport')!.append(cameraPanel);
+// Primary controls stay visible; diagnostics and advanced settings start collapsed.
+const sensitivityPanel=document.createElement('section');
+sensitivityPanel.className='panel sensitivity-panel';
+sensitivityPanel.innerHTML=`<div class="panel-head">REACTION / 動きへの感度 <output id="sensitivity-value">1.00×（基準）</output></div><div class="control-body"><label class="sensitivity-control">低い <input id="sensitivity" aria-label="動きへの感度" type="range" min="0.2" max="2.5" step="0.05" value="1"> 高い</label><button id="sensitivity-reset">基準に戻す</button><div class="muted wide">1.00×が現在の基準。低いほど崩れにくく、高いほど小さな動きに反応します。</div></div>`;
+document.querySelector('.views')!.after(sensitivityPanel);
+const findPanel=(prefix:string)=>Array.from(document.querySelectorAll<HTMLElement>('.panel')).find(p=>p.querySelector('.panel-head')?.textContent?.startsWith(prefix))!;
+const sessionPanel=findPanel('SESSION /');sessionPanel.classList.add('session-panel');sensitivityPanel.after(sessionPanel);
+let settingsAnchor:Element=sessionPanel;
+for(const [node,label] of [
+  [document.querySelector('.metrics')!,'TRACKING / 性能・認識数値'],
+  [findPanel('SIGNAL /'),'SIGNAL / 表示設定'],
+  [findPanel('AUTONOMY /'),'AUTONOMY / SOUND'],
+  [findPanel('FORM /'),'FORM / 立体表現と変容'],
+] as [Element,string][]){
+  const details=document.createElement('details');details.className='settings-fold';
+  const summary=document.createElement('summary');summary.textContent=label;
+  details.append(summary,node);settingsAnchor.after(details);settingsAnchor=details;
+}
+document.querySelector('.controls')?.remove();
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const button=(id:string)=>el<HTMLButtonElement>(id);
 const video=el<HTMLVideoElement>('video'), canvas=el<HTMLCanvasElement>('overlay');
@@ -61,6 +80,13 @@ button('start').onclick=async()=>{
   }catch(error){camera.stop();void sound.stop();audioControls();status(cameraError(error),true);}finally{if(token===startToken){starting=false;controls();}}
 };
 button('stop').onclick=()=>{startToken++;stop();};
+function setSensitivity(value:number){
+  if(visualizer)visualizer.state.sensitivity=value;
+  el<HTMLInputElement>('sensitivity').value=String(value);
+  el('sensitivity-value').textContent=value.toFixed(2)+'×'+(value===1?'（基準）':'');
+}
+el<HTMLInputElement>('sensitivity').oninput=e=>setSensitivity(Number((e.target as HTMLInputElement).value));
+button('sensitivity-reset').onclick=()=>setSensitivity(1);
 el<HTMLInputElement>('mutation').onchange=e=>{if(visualizer)visualizer.state.enabled=(e.target as HTMLInputElement).checked;};
 el<HTMLInputElement>('mutation-strength').oninput=e=>{if(visualizer)visualizer.state.strength=Number((e.target as HTMLInputElement).value);};
 el<HTMLInputElement>('particles').onchange=e=>{if(visualizer)visualizer.particlesEnabled=(e.target as HTMLInputElement).checked;};
