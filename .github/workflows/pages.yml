@@ -22,6 +22,17 @@ jobs:
       - run: npm ci
       - run: npm run assets
       - run: npm run build
+      - run: npm ci
+        working-directory: ver2
+      - run: npm run assets
+        working-directory: ver2
+      - run: npm run build
+        working-directory: ver2
+      - name: Package ver2
+        run: |
+          cp -R ver2/dist dist/ver2
+          (cd ver2/dist && zip -qr ../../dist/somatic-otherwhere-ver2-web.zip .)
+          zip -qr dist/somatic-otherwhere-ver2-source.zip ver2 -x 'ver2/node_modules/*' 'ver2/dist/*'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
